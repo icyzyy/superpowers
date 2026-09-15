@@ -2,13 +2,20 @@
 
 Complete guide for using Superpowers with [OpenCode.ai](https://opencode.ai).
 
+Superpowers supports both **OpenCode 2** and **OpenCode 1** from the same
+package. The plugin default-exports a single definition carrying both the V2
+`setup` entrypoint and the V1 `server` entrypoint, so one install works on
+either runtime. This guide focuses on OpenCode 2; the only V1 difference is
+the config key name (`plugin` instead of `plugins`).
+
 ## Installation
 
-Add superpowers to the `plugin` array in your `opencode.json` (global or project-level):
+Add superpowers to the `plugins` array in your `opencode.json` (global or
+project-level):
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"]
+  "plugins": ["superpowers@git+https://github.com/obra/superpowers.git"]
 }
 ```
 
@@ -91,31 +98,50 @@ To pin a specific version, use a branch or tag:
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#v5.0.3"]
+  "plugins": ["superpowers@git+https://github.com/obra/superpowers.git#v5.0.3"]
 }
 ```
 
 ## How It Works
 
-The plugin does two things:
+The plugin does two things on OpenCode 2:
 
-1. **Injects bootstrap context** via the `experimental.chat.messages.transform` hook, adding superpowers awareness to every conversation.
-2. **Registers the skills directory** via the `config` hook, so OpenCode discovers all superpowers skills without symlinks or manual config.
+1. **Registers the skills** through the `ctx.skill.transform` hook. It reads
+   every `skills/<name>/SKILL.md` and adds it to OpenCode's skill registry with
+   its real path as the `location`, so each skill's base directory (and its
+   `scripts/` and `references/` supporting files) resolve correctly when the
+   skill is loaded.
+2. **Injects the bootstrap** through the `ctx.session.hook("context", ...)`
+   hook, prepending the `using-superpowers` skill content (plus an OpenCode
+   tool mapping) to the first user message of each session. Using a user
+   message instead of a system message avoids token bloat from a system message
+   repeated every turn and sidesteps models that choke on multiple system
+   messages. The hook fires on every agent-loop model request and the edit
+   affects only the outgoing call, so the bootstrap is re-applied each request
+   and survives compaction.
+
+On OpenCode 1 the same package instead returns the legacy `config` hook (which
+pushes the skills path into live config) and the
+`experimental.chat.messages.transform` hook (which injects the bootstrap).
 
 ### Tool Mapping
 
-Skills speak in actions rather than naming any one runtime's tools. On OpenCode these resolve to:
+Skills speak in actions rather than naming any one runtime's tools. On OpenCode
+2 these resolve to:
 
-- "Create a todo" / "mark complete in todo list" → `todowrite`
-- `Subagent (general-purpose):` template → OpenCode's `task` tool with `subagent_type: "general"` (or `"explore"` for codebase exploration)
+- "Create or update todos" → OpenCode 2 has no dedicated todo tool; track progress in a plan file (e.g., `TODO.md`) or the model's task tracking
+- `Subagent (general-purpose):` template → the `subagent` tool
 - "Invoke a skill" → OpenCode's native `skill` tool
 - "Read a file" → `read`
-- "Create a file" / "edit a file" / "delete a file" → `apply_patch`
-- "Run a shell command" → `bash`
+- "Create a file" → `write`
+- "Edit a file" → `edit`
+- "Delete a file" → `shell` (rm)
+- "Run a shell command" → `shell`
 - "Search file contents" / "find files by name" → `grep`, `glob`
 - "Fetch a URL" → `webfetch`
+- "Search the web" → `websearch`
 
-(Verified against the installed OpenCode CLI's tool inventory.)
+(Verified against the installed OpenCode 2 CLI's tool inventory.)
 
 ## Troubleshooting
 
@@ -124,6 +150,11 @@ Skills speak in actions rather than naming any one runtime's tools. On OpenCode 
 1. Check OpenCode logs: `opencode run --print-logs "hello" 2>&1 | grep -i superpowers`
 2. Verify the plugin line in your `opencode.json` is correct
 3. Make sure you're running a recent version of OpenCode
+
+On OpenCode 2 the plugin must export a default definition with an `id` and a
+`setup` function. If you see "Plugin must export a default definition with an
+id and an effect or setup function", you're loading an older (V1-only) build —
+update Superpowers.
 
 ### Windows install issues
 
@@ -141,7 +172,7 @@ Then use the installed package path in `opencode.json`:
 
 ```json
 {
-  "plugin": ["~/.config/opencode/node_modules/superpowers"]
+  "plugins": ["~/.config/opencode/node_modules/superpowers"]
 }
 ```
 
@@ -153,11 +184,14 @@ Then use the installed package path in `opencode.json`:
 
 ### Bootstrap not appearing
 
-1. Check OpenCode version supports `experimental.chat.messages.transform` hook
+1. Make sure you're on OpenCode 2 (the bootstrap uses the V2 `context` hook)
 2. Restart OpenCode after config changes
+3. The bootstrap is injected into the first user message; a brand-new session
+   on a freshly started background service can miss it on the very first
+   message and pick it up from the second message onward
 
 ## Getting Help
 
 - Report issues: https://github.com/obra/superpowers/issues
 - Main documentation: https://github.com/obra/superpowers
-- OpenCode docs: https://opencode.ai/docs/
+- OpenCode docs: https://opencode.ai/v2/docs/

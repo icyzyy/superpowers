@@ -1,5 +1,17 @@
 # Superpowers Release Notes
 
+## v6.4.0 (2026-09-15)
+
+### Harness Support
+
+- **OpenCode 2**: the OpenCode plugin now supports OpenCode 2 (V2) and OpenCode 1 (V1) from the same package. The plugin default-exports a single definition carrying both entrypoints — V2's `setup` and V1's `server` — so one install works on either runtime.
+  - On V2, all skills register through `ctx.skill.transform` with their real `SKILL.md` paths as the location, so each skill's base directory and supporting files (`scripts/`, `references/`) resolve correctly when loaded.
+  - On V2, the bootstrap is injected through the `context` session hook, prepending the `using-superpowers` content to the first user message. The hook fires on every agent-loop model request, so the bootstrap is re-applied each request and survives compaction.
+  - On V1, the legacy `config` + `experimental.chat.messages.transform` hooks are preserved verbatim.
+  - Zero npm dependencies — `@opencode/plugin` is not imported (it is unresolvable from local/package plugins, and `Plugin.define` is an identity function).
+  - The tool mapping is updated for OpenCode 2's renamed tools: `bash` → `shell`, `task` → `subagent`, `apply_patch` → `write`/`edit`. OpenCode 2 has no dedicated todo tool, so task tracking falls back to a plan file.
+  - Install docs (`.opencode/INSTALL.md`, `docs/README.opencode.md`) updated for the V2 `plugins` config key, the V2 API, and V2 troubleshooting.
+
 ## v6.3.0 (2026-08-12)
 
 ### Harness Support

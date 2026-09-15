@@ -29,7 +29,10 @@ fs.readFileSync = function (...args) {
 };
 
 const mod = await import(pathToFileURL(pluginPath).href);
-const plugin = await mod.SuperpowersPlugin({ client: {}, directory: '.' });
+// The plugin default-exports a single definition that serves both OpenCode
+// versions. The V1 entrypoint is the `server` function, which returns the
+// legacy hooks (config + experimental.chat.messages.transform).
+const plugin = await mod.default.server({ client: {}, directory: '.' });
 const transform = plugin['experimental.chat.messages.transform'];
 
 const firstOutput = makeOutput(`${scenario} bootstrap first step`);
