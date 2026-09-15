@@ -1,16 +1,22 @@
 # Installing Superpowers for OpenCode
 
+Superpowers supports both OpenCode 2 and OpenCode 1 from the same package. The
+plugin default-exports a single definition that carries both the V2 `setup`
+entrypoint and the V1 `server` entrypoint, so one install works on either
+runtime.
+
 ## Prerequisites
 
-- [OpenCode.ai](https://opencode.ai) installed
+- [OpenCode.ai](https://opencode.ai) installed (V2 or V1)
 
 ## Installation
 
-Add superpowers to the `plugin` array in your `opencode.json` (global or project-level):
+Add superpowers to the `plugins` array in your `opencode.json` (global or
+project-level):
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"]
+  "plugins": ["superpowers@git+https://github.com/obra/superpowers.git"]
 }
 ```
 
@@ -21,6 +27,9 @@ Verify by asking: "Tell me about your superpowers"
 
 OpenCode uses its own plugin install. If you also use Claude Code, Codex, or
 another harness, install Superpowers separately for each one.
+
+> **OpenCode 1:** the config key is the singular `plugin` instead of `plugins`.
+> The same package works on both — only the config key name differs.
 
 ## Migrating from the old symlink-based install
 
@@ -59,7 +68,7 @@ To pin a specific version:
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#v5.0.3"]
+  "plugins": ["superpowers@git+https://github.com/obra/superpowers.git#v5.0.3"]
 }
 ```
 
@@ -70,6 +79,11 @@ To pin a specific version:
 1. Check logs: `opencode run --print-logs "hello" 2>&1 | grep -i superpowers`
 2. Verify the plugin line in your `opencode.json`
 3. Make sure you're running a recent version of OpenCode
+
+On OpenCode 2 the plugin must export a default definition with an `id` and a
+`setup` function. If you see "Plugin must export a default definition with an
+id and an effect or setup function", you're loading an older (V1-only) build —
+update Superpowers.
 
 ### Windows install issues
 
@@ -87,7 +101,7 @@ Then use the installed package path in `opencode.json`:
 
 ```json
 {
-  "plugin": ["~/.config/opencode/node_modules/superpowers"]
+  "plugins": ["~/.config/opencode/node_modules/superpowers"]
 }
 ```
 
@@ -98,16 +112,19 @@ Then use the installed package path in `opencode.json`:
 
 ### Tool mapping
 
-Skills speak in actions ("create a todo", "dispatch a subagent", "read a file"). On OpenCode these resolve to:
+Skills speak in actions ("create a todo", "dispatch a subagent", "read a file"). On OpenCode 2 these resolve to:
 
-- "Create a todo" / "mark complete in todo list" → `todowrite`
-- `Subagent (general-purpose):` template → `task` tool with `subagent_type: "general"` (or `"explore"` for codebase exploration)
+- "Create or update todos" → OpenCode 2 has no dedicated todo tool; track progress in a plan file (e.g., `TODO.md`) or the model's task tracking
+- `Subagent (general-purpose):` template → the `subagent` tool
 - "Invoke a skill" → OpenCode's native `skill` tool
 - "Read a file" → `read`
-- "Create a file" / "edit a file" / "delete a file" → `apply_patch`
-- "Run a shell command" → `bash`
+- "Create a file" → `write`
+- "Edit a file" → `edit`
+- "Delete a file" → `shell` (rm)
+- "Run a shell command" → `shell`
 - "Search file contents" / "find files by name" → `grep`, `glob`
 - "Fetch a URL" → `webfetch`
+- "Search the web" → `websearch`
 
 ## Getting Help
 
