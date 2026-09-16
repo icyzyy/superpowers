@@ -123,7 +123,10 @@ const discoverSkills = (skillsDir) => {
       // Absolute path to the real SKILL.md. OpenCode derives the skill's base
       // directory from this, which is what makes supporting files (scripts/,
       // references/) resolvable when the skill is loaded.
-      location: skillMdPath,
+      //
+      // OpenCode 2.0.4 renamed the 2.0.3 `location` field to `path` in the
+      // Skill.Info schema, so the V2 registration uses `path`.
+      path: skillMdPath,
       // Body without frontmatter — what OpenCode appends to the conversation
       // when the skill is loaded.
       content,
